@@ -24,13 +24,28 @@ class BudgetWatchAnalysis:
         d = d.loc[d['type'] == type].reset_index(drop=True)
         print(d[['date','value']])
 
-    def plot_budget(self, budget, freq='1M',
+    def plot_budget(self, budget, freq='1q',
                     NET=True, EXPENSE=True, REVENUE=True):
+        """
+
+        :param budget:
+        :param freq:
+        :param NET:
+        :param EXPENSE:
+        :param REVENUE:
+        :return:
+
+        see https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
+        """
         d = self.data.loc[self.data['budget'] == budget]
         #print(d.head())
 
         full_index = self.data.copy()
         full_index = full_index.loc[full_index['type'] != 'BUDGET']['date']
+        # add dummy entry for 1st january of the first year
+        full_index = pd.DataFrame({'date': full_index.append(
+            pd.Series(full_index.min().replace(month=1, day=1))
+        ).reset_index(drop=True)})
 
         expense = d.loc[d['type'] == 'EXPENSE']
         expense = pd.merge(full_index, expense[['date', 'value']],
@@ -63,12 +78,20 @@ class BudgetWatchAnalysis:
         if REVENUE:
             y.append('revenue')
 
-        dd['date'] = dd['date'].dt.year
+        if 'y' in freq.lower():
+            xticks = dd['date'].dt.year
+            xlabel = 'year'
+        else:
+            xticks = dd['date'].dt.month
+            xlabel = 'month'
         # plot
-        dd.plot(x='date', y=y, kind='bar')
-        plt.ylabel('sum [€]')
-        plt.title('Budget: {}'.format(budget))
+        ax = dd.plot(x='date', y=y, kind='bar', width=1)
+        ax.set_ylabel('sum [€]')
+        ax.set_xticklabels(xticks)#, rotation=0)
+        ax.set_xlabel(xlabel)
+        ax.set_title('Budget: {}'.format(budget))
         plt.show()
 
-bw = BudgetWatchAnalysis('test_data/BudgetWatch (14)(1).csv')
-bw.plot_budget('Stuff', freq='1y')
+
+bw = BudgetWatchAnalysis('test_data/BudgetWatch.csv')
+bw.plot_budget('Stuff', freq='6m')
