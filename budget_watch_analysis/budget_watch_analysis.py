@@ -2,6 +2,7 @@ import pandas as pd
 from pathlib import Path
 import matplotlib.pyplot as plt
 
+
 class BudgetWatchAnalysis:
     """
 
@@ -16,13 +17,36 @@ class BudgetWatchAnalysis:
         self.data['date'] = pd.to_datetime(self.data['date_formatted'])
         #self.data['date'] = self.data['date_formatted'].dt.date
 
+    def summary(self):
+        d = self.data.copy()
+        d = d.groupby('budget').count()['type'].sort_values(ascending=False)
+        print('Data in {} Categories:'.format(len(d)))
+        print(d.apply(lambda x: '{} entries'.format(x)).to_string())
+        print()
+        print('Earliest Entry:')
+        print(self.data['date'].min())
+
     def list_budgets(self):
         print(self.data['budget'].unique())
 
     def list_entries(self, budget, type='EXPENSE'):
-        d = self.data.loc[self.data['budget'] == budget]
+        d = self.data.loc[self.data['budget'] == budget].copy()
         d = d.loc[d['type'] == type].reset_index(drop=True)
-        print(d[['date','value']])
+        print(d[['date', 'value']])
+
+    def list_all_receiver(self, budget, type='EXPENSE'):
+        d = self.data.loc[self.data['budget'] == budget].copy()
+        d = d.loc[d['type'] == type].reset_index(drop=True)
+        d['receiver'] = d.loc[:, 'description'].str.lower().str.strip()
+        print(d['receiver'].unique())
+
+    def rank_receiver(self, budget, type='EXPENSE', top=10):
+        d = self.data.loc[self.data['budget'] == budget].copy()
+        d = d.loc[d['type'] == type].reset_index(drop=True)
+        d['receiver'] = d.loc[:, 'description'].str.lower().str.strip()
+        d['count'] = d['type'].copy()
+        print(d.groupby('receiver').count()[
+              'count'].sort_values(ascending=False).head(top).to_string())
 
     def plot_budget(self, budget, freq='1q',
                     NET=True, EXPENSE=True, REVENUE=True):
@@ -92,6 +116,6 @@ class BudgetWatchAnalysis:
         ax.set_title('Budget: {}'.format(budget))
         plt.show()
 
-
-bw = BudgetWatchAnalysis('test_data/BudgetWatch.csv')
-bw.plot_budget('Stuff', freq='6m')
+# for testing:
+#bw = BudgetWatchAnalysis('test_data/BudgetWatch.csv')
+#bw.plot_budget('Stuff', freq='6m')
